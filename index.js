@@ -71,10 +71,19 @@ function parseLongPost(postHtml) {
 }
 
 function parseLogin(loginHtml) {
-
+    const $ = cheerio.load(loginHtml);
 }
 
 function parseDeviceSave(deviceSaveHtml) {
+    console.log(`Parse Device Save Start`);
+
+    const $ = cheerio.load(deviceSaveHtml);
+    if ($('div > a[href*="save-device"]').get().length > 0) {
+        console.log(`On save device page`);
+    } else {
+        console.log(`Wrong Page`);
+    }
+    console.log(`Parse Device Save End`);
 
 }
 
@@ -106,7 +115,7 @@ if (process.argv[2]) {
             break;
         case '5':
             console.log('Parsing Device Save HTML');
-            parseDeviceSave(deviceSaveHtml);
+            parseDeviceSave(loginHtml);
             break;
         default:
             console.log('Arg does not match');

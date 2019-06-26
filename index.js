@@ -1,4 +1,4 @@
-const request = require('request');
+const rp = require('request-promise-native');
 const cheerio = require('cheerio');
 const postShortHtml = require('./postShort');
 const pageHtml = require('./page');
@@ -6,30 +6,66 @@ const postLongHtml = require('./postLong');
 const deviceSaveHtml = require('./device_save');
 const loginHtml = require('./login');
 
-const fbHomeUrl = 'https://mobile.facebook.com';
+const fb = require('./config/fb');
 
-function scrapeFbPage(pageName) {
-    const urlToScrape = `${fbHomeUrl}/${pageName}/?ref=page_internal&_rdr`;
-    request(urlToScrape, function(error, response, html) {
-        //Check to make sure no errors
-        if (!error) {
-            const postUrls = parsePage(html);
-            if (postUrls && postUrls.length > 0) {
-                console.log(`Scrapping Page: ${fbHomeUrl}${postUrls[0]}`);
-                request(fbHomeUrl + postUrls[0], function(error, response, html) {
-                    if (!error) {
-                        const postText = parseLongPost(html);
-                        console.log(`Parse Post text: `);
-                        console.log(postText);
-                    } else {
-                        console.error(error);
-                    }
-                });
-            }
-        } else {
-            console.error(error);
+const fbHomeUrl = 'https://mbasic.facebook.com';
+
+async function scrapeFbPage(pageName) {
+    // const urlToScrape = `${fbHomeUrl}/${pageName}/?ref=page_internal&_rdr`;
+    var options = {
+        uri: fbHomeUrl,
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36'
+        },
+        transform: function(body) {
+            return cheerio.load(body);
         }
-    })
+    };
+    // const $ = await rp(options).catch((err) => {
+    //     // Crawling failed or Cheerio choked...
+    //     console.error(err);
+    // });
+    // // Process html like you would with jQuery...
+    // console.log($.text());
+
+    const postLoginUrl = `https://mbasic.facebook.com/login/device-based/regular/login/?refsrc=https://mbasic.facebook.com/&lwv=100&refid=8`;
+    options.uri = postLoginUrl;
+    options.method = 'POST';
+    options.form = {
+        try_number: 0,
+        unrecognized_tries: 0,
+        email: fb.email,
+        pass: fb.word,
+        login: 'Log+In'
+    }
+    const $login = await rp(options).catch((err) => {
+        // Crawling failed or Cheerio choked...
+        console.error(err);
+        return;
+    });
+    // Process html like you would with jQuery...
+    console.log($login.text());
+
+    // request(urlToScrape, function(error, response, html) {
+    //     //Check to make sure no errors
+    //     if (!error) {
+    //         const postUrls = parsePage(html);
+    //         if (postUrls && postUrls.length > 0) {
+    //             console.log(`Scrapping Page: ${fbHomeUrl}${postUrls[0]}`);
+    //             request(fbHomeUrl + postUrls[0], function(error, response, html) {
+    //                 if (!error) {
+    //                     const postText = parseLongPost(html);
+    //                     console.log(`Parse Post text: `);
+    //                     console.log(postText);
+    //                 } else {
+    //                     console.error(error);
+    //                 }
+    //             });
+    //         }
+    //     } else {
+    //         console.error(error);
+    //     }
+    // })
 }
 
 function parseDate(epochSecInt) {
@@ -95,6 +131,8 @@ if (process.argv[2]) {
             console.log(`Scrapping page ${pageName}`);
             if (pageName) {
                 scrapeFbPage(pageName);
+            } else {
+                console.log(`Missing page name arguement`);
             }
             break;
         case '1':

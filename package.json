@@ -10,6 +10,7 @@
     "dependencies": {
         "cheerio": "latest",
         "request": "latest",
-        "request-promise-native": "^1.0.7"
+        "request-promise-native": "^1.0.7",
+        "tough-cookie": "^3.0.1"
     }
 }

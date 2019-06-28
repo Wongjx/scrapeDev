@@ -5,116 +5,111 @@ const v8 = require('v8');
 const fb = require('./config/fb');
 
 //constants
-const fbHomeUrl = 'https://mbasic.facebook.com';
+const fbHomeUrl = 'https://mbasic.facebook.com/';
 
 //load html templates
 const postShortHtml = require('./postShort');
 const pageHtml = require('./page');
 const postLongHtml = require('./postLong');
+const postStoryHtml = require('./postStory');
 const deviceSaveHtml = require('./device_save');
 const loginHtml = require('./login');
 
 function errorLoggging(err) {
     console.error(`Error!`);
     console.error(err);
-
     //TODO: Let 302 redirects pass without errors
-
-    return;
+    throw err;
 }
-function getAndSetCookies(response, cookieJar) {
-    var cookies = [];
-    const cookieHeader = response.headers['set-cookie'];
-    // if (cookieHeader instanceof Array) {
-    //     cookies = cookieHeader.map(tough.parse);
-    // } else {
-    //     cookies = [tough.parse(cookieHeader)];
-    // }
-    // console.log(cookies);
-    //Set cookies if present
-    if (cookieHeader.length > 0) {
-        cookieHeader.forEach(cookie => {
-            cookieJar.setCookie(cookie,fbHomeUrl,{http:true});
-        });
+function getDefaultRequestPromise() {
+    const cookieJar = rp.jar();
+    function getAndSetCookies(body, response, resolveWithFullResponse) {
+        const cookieHeader = response.headers['set-cookie'];
+        //Set cookies if present
+        if (cookieHeader && cookieHeader.length > 0) {
+            cookieHeader.forEach(cookie => {
+                cookieJar.setCookie(cookie,fbHomeUrl,{http:true});
+            });
+        }
+        return body;
     }
-    // cookieJar.setCookie(cookieHeader);
-    return cookieJar;
-}
-function getOptions() {
-    return {
+    const defaultOptions = {
         method: 'GET',
         headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36'
         },
-        uri: fbHomeUrl,
-        resolveWithFullResponse: true
+        jar:cookieJar,
+        baseUrl : fbHomeUrl,
+        resolveWithFullResponse: true,
+        followAllRedirects : true,
+        transform:getAndSetCookies
     };
+    return rp.defaults(defaultOptions);
 }
-
 async function scrapeFbPage(pageName) {
-    var cookieJar = rp.jar();
     // Load login Screen
-    const loginGetOptions = getOptions();
-    const loginGetResponse = await rp(loginGetOptions).catch(errorLoggging);
-    console.log(`Login Get Headers`);
-    console.log(loginGetResponse.headers);
-    if (loginGetResponse.statusCode > 200) {
-        console.error(`Request Error: Status Code=${loginGetResponse.statusCode}, statusMessage=${loginGetResponse.statusMessage}`);
+    const defaultRequest = getDefaultRequestPromise();
+    console.log(`Get Login Page`);
+    const loginGetResponseBody = await defaultRequest('').catch(errorLoggging);
+    if(!loginGetResponseBody){
         return;
     }
     // get cookies and login url
-    cookieJar = getAndSetCookies(loginGetResponse, cookieJar);
-    const loginPostUrl = parseLogin(loginGetResponse.body);
-    console.log(`CookieJar after loginGet`);
-    console.log(cookieJar);
+    const loginPostUrl = parseLogin(loginGetResponseBody);
     console.log(`LoginPostUrl: ${loginPostUrl}`);
-
     // Configure login POST request
-    const loginPostOptions = getOptions();
-    // const postLoginUrl = `https://mbasic.facebook.com/login/device-based/regular/login/?refsrc=https://mbasic.facebook.com/&lwv=100&refid=8`;
-    loginPostOptions.uri = fbHomeUrl + loginPostUrl;
-    loginPostOptions.jar = cookieJar;
-    loginPostOptions.method = 'POST';
-    loginPostOptions.form = {
-        try_number: 0,
-        unrecognized_tries: 0,
-        email: fb.email,
-        pass: fb.word,
-        login: 'Log+In'
+    const loginPostOptions = {
+        uri: loginPostUrl[0],
+        method: 'POST',
+        form: {
+            try_number: 0,
+            unrecognized_tries: 0,
+            email: fb.email,
+            pass: fb.word,
+            login: 'Log+In'
+        }
     };
-    console.log(`LoginPostOptions:`);
-    console.log(loginPostOptions);
+    if(loginPostUrl.length>1){
+        loginPostOptions.qs=loginPostUrl[1];
+    }
     // Send Login Post Request
-    const loginPostResponse = await rp(loginPostOptions).catch(errorLoggging);
-    // console.log(`Login Post Headers`);
-    // console.log(loginPostResponse.headers);
-    if (loginPostResponse.statusCode > 200) {
-        console.error(`Request Error: Status Code=${loginPostResponse.statusCode}, statusMessage=${loginPostResponse.statusMessage}`);
+    console.log(`Submit Login Form`);
+    const loginPostResponse = await defaultRequest(loginPostOptions).catch(errorLoggging);
+    if(!loginPostResponse){
         return;
     }
-    console.log(loginPostResponse);
-
-    // const urlToScrape = `${fbHomeUrl}/${pageName}/?ref=page_internal&_rdr`;
-    // request(urlToScrape, function(error, response, html) {
-    //     //Check to make sure no errors
-    //     if (!error) {
-    //         const postUrls = parsePage(html);
-    //         if (postUrls && postUrls.length > 0) {
-    //             console.log(`Scrapping Page: ${fbHomeUrl}${postUrls[0]}`);
-    //             request(fbHomeUrl + postUrls[0], function(error, response, html) {
-    //                 if (!error) {
-    //                     const postText = parseLongPost(html);
-    //                     console.log(`Parse Post text: `);
-    //                     console.log(postText);
-    //                 } else {
-    //                     console.error(error);
-    //                 }
-    //             });
-    //         }
-    //     } else {
-    //         console.error(error);
-    //     }
-    // })
+    // parse page for url to cancel device save
+    // console.log(loginPostResponse);
+    const saveDeviceCancelUrl = parseDeviceSave(loginPostResponse);
+    if(!saveDeviceCancelUrl){
+        return;
+    }
+    // Cancel Device Save 
+    console.log(`Cancel Device Save`);
+    const deviceSaveCancelGetResponse = await defaultRequest(saveDeviceCancelUrl).catch(errorLoggging);
+    if(!deviceSaveCancelGetResponse){
+        return;
+    }
+    // navigate to fb page to scrape
+    console.log(`Go to fb page`);
+    const urlToScrape = `/${pageName}/?ref=page_internal&_rdr`;
+    const pageGetResponse = await defaultRequest(urlToScrape).catch(errorLoggging);
+    if(!pageGetResponse){
+        return;
+    }
+    const postUrls = parsePage(pageGetResponse);
+    //scrape individual posts
+    console.log(`Go to fb post`);
+    if (postUrls && postUrls.length > 0) {
+        console.log(`Scrapping Page: ${fbHomeUrl}${postUrls[0]}`);
+        const postResponse = await defaultRequest(postUrls[0]).catch(errorLoggging);
+        // console.log(postResponse);
+        if(!postResponse){
+            return;
+        }
+        const postText = parseLongPost(postResponse);
+        console.log(postText);
+    }
 }
 
 function parseDate(epochSecInt) {
@@ -122,7 +117,6 @@ function parseDate(epochSecInt) {
 }
 
 function parsePage(htmlString) {
-    console.log(`HtmlString: ${htmlString}`);
     console.log(`parsePage start`);
     const $ = cheerio.load(htmlString);
     // select all posts from divs containing attribute:data-ft=top_level_post_id OR role=article
@@ -137,7 +131,6 @@ function parsePage(htmlString) {
         // TODO: if not avalible, do parse_date2 from abbr tag text
         // get post url
         const postUrl = $post.find('a[href*="footer"]').attr('href');
-
         console.log(`Post date : ${postTime.toLocaleString()}`);
         console.log(`Post URL: ${postUrl}`);
         postUrls.push(postUrl);
@@ -150,29 +143,41 @@ function parseLongPost(postHtml) {
     console.log(`parseLongPost start`);
     // get full post text from all <p>s in a div containing attribute:data-ft
     const $ = cheerio.load(postHtml);
-    const postText = $('div[data-ft] > p').text();
-    console.log(`parseLongPost end`);
-    return postText;
+    console.log(`Load finish`);
+    if($('div[data-ft] > p').get().length>0){
+        // console.log($('div[data-ft] > p'));
+        return $('div[data-ft] > p').text();
+    } else {
+        // console.log($('div[data-ft] > div > div > div > span'));
+        return $('div[data-ft] > div > div > div > span').text();
+    }
 }
 
 function parseLogin(loginHtml) {
     const $ = cheerio.load(loginHtml);
     const url = decodeURIComponent($('#login_form').attr('action'));
-    console.log(url);
-    return url;
+    if(url.indexOf('?'!=-1)){ //contains querystring
+        var queryString = url.substring(url.indexOf('?')+1);
+        var path = url.substring(0,url.indexOf('?'));
+        return [path,queryString];
+    } else {
+        return [url];
+    }
 }
 
 function parseDeviceSave(deviceSaveHtml) {
     console.log(`Parse Device Save Start`);
-
     const $ = cheerio.load(deviceSaveHtml);
     if ($('div > a[href*="save-device"]').get().length > 0) {
         console.log(`On save device page`);
+        // Get cancel option url
+        const saveDeviceCancelUrl = $('a[href*="cancel"]').attr('href');
+        console.log(`Save Device Cancel Href: ${saveDeviceCancelUrl}`);
+        return saveDeviceCancelUrl;
     } else {
         console.log(`Wrong Page`);
     }
     console.log(`Parse Device Save End`);
-
 }
 
 //Test
@@ -197,7 +202,7 @@ if (process.argv[2]) {
             break;
         case '3':
             console.log('Parsing Long Post HTML');
-            parseLongPost(postLongHtml);
+            console.log(parseLongPost(postLongHtml));
             break;
         case '4':
             console.log('Parsing Login HTML');
@@ -205,18 +210,11 @@ if (process.argv[2]) {
             break;
         case '5':
             console.log('Parsing Device Save HTML');
-            parseDeviceSave(loginHtml);
+            parseDeviceSave(deviceSaveHtml);
             break;
         case '6':
-            console.log('Parsing Cookies');
-            var cookieArray = ['datr=z5EUXSDtdTCtwoltCoged8dS; expires=Sat, 26-Jun-2021 09:52:15 GMT; Max-Age=63072000; path=/; domain=.facebook.com; secure; httponly',
-                'sb=z5EUXZ9k50W0HVTW4br9appv; expires=Sat, 26-Jun-2021 09:52:15 GMT; Max-Age=63072000; path=/; domain=.facebook.com; secure; httponly'
-            ];
-            parseCookies(cookieArray).forEach(cookie => {
-                console.log(`Key: ${cookie.key}`);
-                console.log(`Value: ${cookie.value}`);
-
-            });
+            console.log('Parsing Story Post HTML');
+            console.log(parseLongPost(postStoryHtml));
             break;
         default:
             console.log('Arg does not match');

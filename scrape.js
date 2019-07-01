@@ -1,19 +1,17 @@
 const rp = require('request-promise-native');
-const tough = require('tough-cookie');
 const cheerio = require('cheerio');
-const v8 = require('v8');
 const fb = require('./config/fb');
 
 //constants
 const fbHomeUrl = 'https://mbasic.facebook.com/';
 
-//load html templates
-const postShortHtml = require('./postShort');
-const pageHtml = require('./page');
-const postLongHtml = require('./postLong');
-const postStoryHtml = require('./postStory');
-const deviceSaveHtml = require('./device_save');
-const loginHtml = require('./login');
+//load html templates use for testing
+const postShortHtml = require('./testRes/postShort');
+const pageHtml = require('./testRes/page');
+const postLongHtml = require('./testRes/postLong');
+const postStoryHtml = require('./testRes/postStory');
+const deviceSaveHtml = require('./testRes/device_save');
+const loginHtml = require('./testRes/login');
 
 function errorLoggging(err) {
     console.error(`Error!`);
@@ -111,11 +109,34 @@ async function scrapeFbPage(pageName) {
         console.log(postText);
     }
 }
-
+function parseLogin(loginHtml) {
+    const $ = cheerio.load(loginHtml);
+    const url = decodeURIComponent($('#login_form').attr('action'));
+    if(url.indexOf('?'!=-1)){ //contains querystring
+        var queryString = url.substring(url.indexOf('?')+1);
+        var path = url.substring(0,url.indexOf('?'));
+        return [path,queryString];
+    } else {
+        return [url];
+    }
+}
+function parseDeviceSave(deviceSaveHtml) {
+    console.log(`Parse Device Save Start`);
+    const $ = cheerio.load(deviceSaveHtml);
+    if ($('div > a[href*="save-device"]').get().length > 0) {
+        console.log(`On save device page`);
+        // Get cancel option url
+        const saveDeviceCancelUrl = $('a[href*="cancel"]').attr('href');
+        console.log(`Save Device Cancel Href: ${saveDeviceCancelUrl}`);
+        return saveDeviceCancelUrl;
+    } else {
+        console.log(`Wrong Page`);
+    }
+    console.log(`Parse Device Save End`);
+}
 function parseDate(epochSecInt) {
     return new Date(epochSecInt * 1000);
 }
-
 function parsePage(htmlString) {
     console.log(`parsePage start`);
     const $ = cheerio.load(htmlString);
@@ -138,7 +159,6 @@ function parsePage(htmlString) {
     console.log(`parsePage end`);
     return postUrls;
 }
-
 function parseLongPost(postHtml) {
     console.log(`parseLongPost start`);
     // get full post text from all <p>s in a div containing attribute:data-ft
@@ -151,33 +171,6 @@ function parseLongPost(postHtml) {
         // console.log($('div[data-ft] > div > div > div > span'));
         return $('div[data-ft] > div > div > div > span').text();
     }
-}
-
-function parseLogin(loginHtml) {
-    const $ = cheerio.load(loginHtml);
-    const url = decodeURIComponent($('#login_form').attr('action'));
-    if(url.indexOf('?'!=-1)){ //contains querystring
-        var queryString = url.substring(url.indexOf('?')+1);
-        var path = url.substring(0,url.indexOf('?'));
-        return [path,queryString];
-    } else {
-        return [url];
-    }
-}
-
-function parseDeviceSave(deviceSaveHtml) {
-    console.log(`Parse Device Save Start`);
-    const $ = cheerio.load(deviceSaveHtml);
-    if ($('div > a[href*="save-device"]').get().length > 0) {
-        console.log(`On save device page`);
-        // Get cancel option url
-        const saveDeviceCancelUrl = $('a[href*="cancel"]').attr('href');
-        console.log(`Save Device Cancel Href: ${saveDeviceCancelUrl}`);
-        return saveDeviceCancelUrl;
-    } else {
-        console.log(`Wrong Page`);
-    }
-    console.log(`Parse Device Save End`);
 }
 
 //Test

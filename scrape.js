@@ -1,17 +1,18 @@
 const rp = require('request-promise-native');
 const cheerio = require('cheerio');
 const fb = require('./config/fb');
+const utils = require('./utils');
 
 //constants
 const fbHomeUrl = 'https://mbasic.facebook.com/';
 
 //load html templates use for testing
-const postShortHtml = require('./testRes/postShort');
-const pageHtml = require('./testRes/page');
-const postLongHtml = require('./testRes/postLong');
-const postStoryHtml = require('./testRes/postStory');
-const deviceSaveHtml = require('./testRes/device_save');
-const loginHtml = require('./testRes/login');
+// const postShortHtml = require('./testRes/postShort');
+// const pageHtml = require('./testRes/page');
+// const postLongHtml = require('./testRes/postLong');
+// const postStoryHtml = require('./testRes/postStory');
+// const deviceSaveHtml = require('./testRes/device_save');
+// const loginHtml = require('./testRes/login');
 
 function errorLoggging(err) {
     console.error(`Error!`);
@@ -95,19 +96,24 @@ async function scrapeFbPage(pageName) {
     if(!pageGetResponse){
         return;
     }
-    const postUrls = parsePage(pageGetResponse);
+    const pagePostsArray = parsePage(pageGetResponse);
     //scrape individual posts
+    const postInfoArray = [];
     console.log(`Go to fb post`);
-    if (postUrls && postUrls.length > 0) {
-        console.log(`Scrapping Page: ${fbHomeUrl}${postUrls[0]}`);
-        const postResponse = await defaultRequest(postUrls[0]).catch(errorLoggging);
-        // console.log(postResponse);
-        if(!postResponse){
-            return;
-        }
-        const postText = parseLongPost(postResponse);
-        console.log(postText);
+    if (pagePostsArray && pagePostsArray.length > 0) {
+        pagePostsArray.array.forEach(async (post) => {
+            console.log(`Scrapping Page: ${fbHomeUrl}${pagePostsArray[0][1]}`);
+            const postResponse = await defaultRequest(pagePostsArray[0][1]).catch(errorLoggging);
+            // console.log(postResponse);
+            if(!postResponse){
+                return;
+            }
+            const postText = parseLongPost(postResponse);
+            console.log(postText);
+            postInfoArray.push([post[0],postText]);
+        });
     }
+    return postInfoArray;
 }
 function parseLogin(loginHtml) {
     const $ = cheerio.load(loginHtml);
@@ -134,30 +140,28 @@ function parseDeviceSave(deviceSaveHtml) {
     }
     console.log(`Parse Device Save End`);
 }
-function parseDate(epochSecInt) {
-    return new Date(epochSecInt * 1000);
-}
+
 function parsePage(htmlString) {
     console.log(`parsePage start`);
     const $ = cheerio.load(htmlString);
     // select all posts from divs containing attribute:data-ft=top_level_post_id OR role=article
-    var postUrls = [];
+    var retArray = [];
     $('div[data-ft*="top_level_post_id"]').each(function(index) {
         const $post = $(this);
         // get datetime from converting attribute:data-ft[publish-time] from epoch-time 
         const data = JSON.parse(($post.attr('data-ft')));
         const pageId = data['page_id'];
         const postEpochTime = data['page_insights'][pageId]['post_context']['publish_time'];
-        const postTime = parseDate(postEpochTime);
+        const postTime = utils.parseDate(postEpochTime);
         // TODO: if not avalible, do parse_date2 from abbr tag text
         // get post url
         const postUrl = $post.find('a[href*="footer"]').attr('href');
         console.log(`Post date : ${postTime.toLocaleString()}`);
         console.log(`Post URL: ${postUrl}`);
-        postUrls.push(postUrl);
+        retArray.push([postEpochTime,postUrl]);
     });
     console.log(`parsePage end`);
-    return postUrls;
+    return retArray;
 }
 function parseLongPost(postHtml) {
     console.log(`parseLongPost start`);
@@ -174,44 +178,44 @@ function parseLongPost(postHtml) {
 }
 
 //Test
-if (process.argv[2]) {
-    switch (process.argv[2]) {
-        case '0':
-            const pageName = process.argv[3];
-            console.log(`Scrapping page ${pageName}`);
-            if (pageName) {
-                scrapeFbPage(pageName);
-            } else {
-                console.log(`Missing page name arguement`);
-            }
-            break;
-        case '1':
-            console.log('Parsing Page HTML');
-            parsePage(pageHtml);
-            break;
-        case '2':
-            console.log('Parsing Short Post HTML');
-            parsePage(postShortHtml);
-            break;
-        case '3':
-            console.log('Parsing Long Post HTML');
-            console.log(parseLongPost(postLongHtml));
-            break;
-        case '4':
-            console.log('Parsing Login HTML');
-            parseLogin(loginHtml);
-            break;
-        case '5':
-            console.log('Parsing Device Save HTML');
-            parseDeviceSave(deviceSaveHtml);
-            break;
-        case '6':
-            console.log('Parsing Story Post HTML');
-            console.log(parseLongPost(postStoryHtml));
-            break;
-        default:
-            console.log('Arg does not match');
-    }
-} else {
-    parsePage(postShortHtml);
-}
+// if (process.argv[2]) {
+//     switch (process.argv[2]) {
+//         case '0':
+//             const pageName = process.argv[3];
+//             console.log(`Scrapping page ${pageName}`);
+//             if (pageName) {
+//                 scrapeFbPage(pageName);
+//             } else {
+//                 console.log(`Missing page name arguement`);
+//             }
+//             break;
+//         case '1':
+//             console.log('Parsing Page HTML');
+//             parsePage(pageHtml);
+//             break;
+//         case '2':
+//             console.log('Parsing Short Post HTML');
+//             parsePage(postShortHtml);
+//             break;
+//         case '3':
+//             console.log('Parsing Long Post HTML');
+//             console.log(parseLongPost(postLongHtml));
+//             break;
+//         case '4':
+//             console.log('Parsing Login HTML');
+//             parseLogin(loginHtml);
+//             break;
+//         case '5':
+//             console.log('Parsing Device Save HTML');
+//             parseDeviceSave(deviceSaveHtml);
+//             break;
+//         case '6':
+//             console.log('Parsing Story Post HTML');
+//             console.log(parseLongPost(postStoryHtml));
+//             break;
+//         default:
+//             console.log('Arg does not match');
+//     }
+// } else {
+//     parsePage(postShortHtml);
+// }

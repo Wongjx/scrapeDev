@@ -15,19 +15,68 @@ function getConnectionToDatabase(){
         database: config.database
     });
 }
-
-async function insertPost(){
+/**
+ * Insert single post into FacebookPosts 
+ * @param {string} VendorID UUID of vendor
+ * @param {number} PostDate Datetime of post in epoch format
+ * @param {string} Contents Contents of post
+ * @return {Object} Result of transaction 
+ */
+async function insertPost(VendorID,PostDate,Contents){
     // TODO: insert single post into FacebookPosts
+    const db = await getConnectionToDatabase().catch(logError);
+    const results = await db.query(queries.INSERT_POST_QUERY, [VendorID,PostDate,Contents]).catch(logError);
+    db.end();
+    return results;
+    // Suceed results, throw error if fail
+    // [
+    //     ResultSetHeader {
+    //       fieldCount: 0,
+    //       affectedRows: 1,
+    //       insertId: 0,
+    //       info: '',
+    //       serverStatus: 2,
+    //       warningStatus: 0
+    //     },
+    //     undefined
+    //   ]
 }
-async function insertMultiplePosts(){
-    // TODO: Insert multiple rows into FacebookPosts in single transaction
+async function insertMultiplePosts(fbPosts){
+    if(fbPosts.length<1){
+        console.error('insertMultiplePosts: number of posts to insert less than 1');
+        return;
+    }
+    const db = await getConnectionToDatabase().catch(logError);
+    const results0 =  await db.beginTransaction().catch(logError);
+    console.log(results0);
+    fbPosts.forEach(async post => {
+        if(post.length<3){
+            console.error(`insertMultiplePosts: post missing some data. ${post}`);
+        } else {
+            const results1 = await db.query(queries.INSERT_POST_QUERY, post).catch(logError);
+            console.log(results1);
+        }
+    });
+    const result4 = await db.commit().catch(logError);
+    // console.log(result4);
+    db.end();
+    return result4;
 }
 async function selectSinglePost(facebookPageName, eopchSecInt){
     // TODO: Select row from FacebookPosts by vendor name and time
 }
 
 async function selectAllVendorPosts(facebookPageName){
-    // TODO: Select all rows by vendor name
+    const db = await getConnectionToDatabase().catch(logError);
+    // get vendor uuid
+    const [vendorIdRows, vendorFields] = await db.query(queries.SELECT_VENDORID_BY_FBPAGENAME_QUERY, [facebookPageName]).catch(logError);
+    if(vendorIdRows.length!=1){
+        console.error('Number of Ids returned not eqauls to than 1');
+    }
+    // Get vendors facebook posts
+    const [vendorFacebookPosts, fbPostsFields] = await db.query(queries.SELECT_ALL_QUERY+queries.WHERE_VENDORID_CONDITION, ['FacebookPosts',vendorIdRows[0].VendorID]).catch(logError);
+    db.end();
+    return vendorFacebookPosts;
 }
 
 async function selectAllVendors(){
@@ -36,5 +85,10 @@ async function selectAllVendors(){
     db.end();
     return rows;
 }
+selectAllVendorPosts('leongteedurian');
+
 
 module.exports.selectAllVendors = selectAllVendors;
+module.exports.selectAllVendorPosts = selectAllVendorPosts;
+module.exports.insertPost = insertPost;
+module.exports.insertMultiplePosts = insertMultiplePosts;

@@ -1,7 +1,8 @@
-const rp = require('request-promise-native');
 const cheerio = require('cheerio');
 const fb = require('./config/fb');
 const utils = require('./utils');
+const rp = require('request-promise-native');
+const cookieJar = rp.jar();
 
 //constants
 const fbHomeUrl = 'https://mbasic.facebook.com/';
@@ -17,11 +18,11 @@ const fbHomeUrl = 'https://mbasic.facebook.com/';
 function errorLoggging(err) {
     console.error(`Error!`);
     console.error(err);
-    //TODO: Let 302 redirects pass without errors
     throw err;
 }
+
 function getDefaultRequestPromise() {
-    const cookieJar = rp.jar();
+    // const cookieJar = rp.jar();
     function getAndSetCookies(body, response, resolveWithFullResponse) {
         const cookieHeader = response.headers['set-cookie'];
         //Set cookies if present
@@ -45,7 +46,7 @@ function getDefaultRequestPromise() {
     };
     return rp.defaults(defaultOptions);
 }
-async function scrapeFbPage(pageName) {
+async function loginIntoFb(){
     // Load login Screen
     const defaultRequest = getDefaultRequestPromise();
     console.log(`Get Login Page`);
@@ -78,42 +79,13 @@ async function scrapeFbPage(pageName) {
         return;
     }
     // parse page for url to cancel device save
-    // console.log(loginPostResponse);
     const saveDeviceCancelUrl = parseDeviceSave(loginPostResponse);
     if(!saveDeviceCancelUrl){
         return;
     }
     // Cancel Device Save 
     console.log(`Cancel Device Save`);
-    const deviceSaveCancelGetResponse = await defaultRequest(saveDeviceCancelUrl).catch(errorLoggging);
-    if(!deviceSaveCancelGetResponse){
-        return;
-    }
-    // navigate to fb page to scrape
-    console.log(`Go to fb page`);
-    const urlToScrape = `/${pageName}/?ref=page_internal&_rdr`;
-    const pageGetResponse = await defaultRequest(urlToScrape).catch(errorLoggging);
-    if(!pageGetResponse){
-        return;
-    }
-    const pagePostsArray = parsePage(pageGetResponse);
-    //scrape individual posts
-    const postInfoArray = [];
-    console.log(`Go to fb post`);
-    if (pagePostsArray && pagePostsArray.length > 0) {
-        pagePostsArray.array.forEach(async (post) => {
-            console.log(`Scrapping Page: ${fbHomeUrl}${pagePostsArray[0][1]}`);
-            const postResponse = await defaultRequest(pagePostsArray[0][1]).catch(errorLoggging);
-            // console.log(postResponse);
-            if(!postResponse){
-                return;
-            }
-            const postText = parseLongPost(postResponse);
-            console.log(postText);
-            postInfoArray.push([post[0],postText]);
-        });
-    }
-    return postInfoArray;
+    return defaultRequest(saveDeviceCancelUrl).catch(errorLoggging);
 }
 function parseLogin(loginHtml) {
     const $ = cheerio.load(loginHtml);
@@ -141,6 +113,35 @@ function parseDeviceSave(deviceSaveHtml) {
     console.log(`Parse Device Save End`);
 }
 
+async function scrapeFbPage(vendorPageName) {
+    const defaultRequest = getDefaultRequestPromise();
+    // navigate to fb page to scrape
+    console.log(`Go to fb page`);
+    const urlToScrape = `/${vendorPageName}/?ref=page_internal&_rdr`;
+    const pageGetResponse = await defaultRequest(urlToScrape).catch(errorLoggging);
+    if(!pageGetResponse){
+        return;
+    }
+    const pagePostsArray = parsePage(pageGetResponse);
+    //scrape individual posts
+    console.log(`Go to fb post`);
+    if (pagePostsArray && pagePostsArray.length > 0) {
+        return Promise.all(pagePostsArray.map(async (post) => {
+            console.log(`Scrapping Post: ${fbHomeUrl}${post[1]}`);
+            // return Promise.all([post[0], defaultRequest(post[1])]);
+            const postResponse = await defaultRequest(post[1]).catch(errorLoggging);
+            // console.log(postResponse);
+            if(!postResponse){
+                return;
+            }
+            const postText = parseLongPost(postResponse);
+            return [post[0],postText]; //[PostDate,PostText]
+        }));
+    } else {
+        console.error(`No posts to crawl`);
+        return;
+    }
+}
 function parsePage(htmlString) {
     console.log(`parsePage start`);
     const $ = cheerio.load(htmlString);
@@ -176,6 +177,8 @@ function parseLongPost(postHtml) {
         return $('div[data-ft] > div > div > div > span').text();
     }
 }
+module.exports.scrapeFbPage=scrapeFbPage;
+module.exports.loginIntoFb=loginIntoFb;
 
 //Test
 // if (process.argv[2]) {

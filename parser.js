@@ -1,6 +1,6 @@
 const goldenIndex = {
     "leongteedurian" : {
-        d1: /\d+(?=kg.*Mao Shan Wang Durian)/i
+        d1: /(\d+)kg\s*Pahang\s*One\s*Old\s*Tree\s*Mao\s*Shan\s*Wang\s*Durian/i
     },
     "227katongdurian" : {
         d1: /(?<=MSW \/ Old Tree MSW *)\$(\d+)\/kg \/ \$(\d+)\/kg/i,
@@ -95,20 +95,33 @@ const goldenIndex = {
     }
 }
 
-function parseDurianPrice(inputString){
+function parseDurianPrice(vendorPageName, inputString){
     // const results = katong227durian.d7.exec(inputString);
     // const testRegex = /.*Jin feng *\$(\d+)(?: *per)? *kg/;
-    const vendor = goldenIndex["leongteedurian"];
-    for(durianReg in vendor){
-        console.log(vendor[durianReg].exec(inputString));
+    if(!goldenIndex.hasOwnProperty(vendorPageName)){
+        console.error(`Vendor ${vendorPageName} regex not avaliable`);
+        return;
     }
+    const vendor = goldenIndex[vendorPageName];
+    return Object.keys(vendor).map((dNum)=>{
+        result = vendor[dNum].exec(inputString);
+        return [dNum,result?result[1]:null];
+    })
 }
+module.exports.parseDurianPrice=parseDurianPrice;
+// console.log(parseDurianPrice("227katongdurian",`Hi Durians Fans, it’s Friday. Wish everyone a happy Friday.
 
-parseDurianPrice(`🚚💨💨💨💨Pahang One Old Tree Mao Shan Wang Durian arrived ~‼️
-🌟💲20kg Pahang One Old Tree Mao Shan Wang Durian (Creamy Bitter Sweet ) 🌟🍡’Must Try’💲15.80 Per Box Mao Shan Wang Durian Mochi ( Comes in box of 8pc🍡 ) Our latest products,⛩The traditional method of making mochi is called “ドリアンもち”☄️Our Chewy Mao Shan Wang Durian Mochi Skin encasing 💯% pure Mao Shan Wang Flesh for the most delightful experience in every bite,Soft to the centre 👍🏻.
-📌Reservations only via phone calls after 2pm ☎️ 63466683 or walk-in reservations ,Strictly no reservations via SMS / Whatsapps / Wechat / Facebook . ( For eat-in customer, 💺Seat will be first come first serve) .
-📌Note : Our lines might be engaged or might not be able pick up all calls, We will try our best to pick
-up all calls, We would like thank
-for all your patience in waiting ,because we are short of manpower ,🚩ONLY ONE person to handles All reservations , Reply all enquiries & all Call ,who is also managing the real-time crowd at the stall with Queries,So May Effect our service,We will try our Best to Serve you,thanks for understanding. 📌Reservation of durians is to ensure the availability of the durians when you are here and the collection of the durians is based on first-come-first-served basis.You may have to join the queue (if any) to collect the durians when you are here.
-📌Avoid calling during peak hours (📵6pm to 8pm).
-📌(Note : Our lines might be engaged or might not be able pic`);
+// We kindly 🙇🏻‍♂ seek your understanding that we may not be able to pick up all calls during this peak period as we are trying to open durians as fast as possible so that you all can satisfy your cravings for durians asap too~
+
+// Please do walk-in to our shop. (We have ❄ air-conditioning seats too!)
+
+// Here are the latest updated price for our durians:
+
+// MSW / Old Tree MSW $17/kg / $20/kg
+// Golden Phoenix $16/kg
+// Tawa $12/kg
+// Green Bamboo $12/kg
+// Black Pearl $12/kg
+// Hu Lu Wang (葫芦王) $10/kg
+// D13, D1 & Red Prawn $8/kg
+// Kampung $8/kg`));

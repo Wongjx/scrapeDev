@@ -62,6 +62,19 @@ async function insertMultiplePosts(fbPosts){
     db.end();
     return result4;
 }
+async function insertMultiplePrices(vendorId,postDate,durianPrices){
+    const db = await getConnectionToDatabase().catch(logError);
+    const results0 =  await db.beginTransaction().catch(logError);
+    // console.log(`Start DB Transaction: ${results0}`);
+    durianPrices.forEach(async price => {
+        const results1 = await db.query(queries.INSERT_DURIANPRICE_QUERY, [vendorId,postDate,price[0],price[1]]).catch(logError);
+        console.log(results1);
+    });
+    const result4 = await db.commit().catch(logError);
+    // console.log(result4);
+    db.end();
+    return result4;
+}
 async function selectSinglePost(facebookPageName, eopchSecInt){
     // TODO: Select row from FacebookPosts by vendor name and time
 }
@@ -78,17 +91,25 @@ async function selectAllVendorPosts(facebookPageName){
     db.end();
     return vendorFacebookPosts;
 }
-
 async function selectAllVendors(){
     const db = await getConnectionToDatabase().catch(logError);
     const [rows, fields] = await db.query(queries.SELECT_ALL_QUERY, ['Vendors']).catch(logError);
     db.end();
     return rows;
 }
-selectAllVendorPosts('leongteedurian');
+async function selectUnprocessedFacebookPosts(){
+    const db = await getConnectionToDatabase().catch(logError);
+    const [unprocessedFbPosts, fields1] = await db.query(queries.SELECT_UNPROCESSED_FBPOSTS_QUERY).catch(logError);
+    db.end();
+    return unprocessedFbPosts;
+}
 
-
+// selectAllVendors().then((res) => {
+//     console.log(res);
+// });
 module.exports.selectAllVendors = selectAllVendors;
 module.exports.selectAllVendorPosts = selectAllVendorPosts;
+module.exports.selectUnprocessedFacebookPosts = selectUnprocessedFacebookPosts;
 module.exports.insertPost = insertPost;
 module.exports.insertMultiplePosts = insertMultiplePosts;
+module.exports.insertMultiplePrices = insertMultiplePrices;

@@ -1,15 +1,30 @@
 const repository = require('./repository');
 const scrape = require('./scrape');
+const parser = require('./parser');
 const utils = require('./utils');
 const fs = require('fs');
 
 async function main() {
+    // //get all unprocessed fbposts
     const vendors = await repository.selectAllVendors();
-    //get all unprocessed fbposts
+    const vendorMap = getVendorIdToFbPageNameMap(vendors);
+    const unprocessedFbPosts = await repository.selectUnprocessedFacebookPosts();
     
     //for each fb post, parse prices, insert all prices into db as 1 transaction
-    
+    const results = unprocessedFbPosts.map(async (post) =>{
+        const parsedPrices = parser.parseDurianPrice(vendorMap.get(post.VendorID),post.Contents);
+        return await repository.insertMultiplePrices(post.VendorID,post.PostDate,parsedPrices.filter((price)=> price!==undefined ));
+    });
+    console.log(results);
 };
+
+function getVendorIdToFbPageNameMap(vendors){
+    const vendorMap = new Map();
+    vendors.forEach(vendor => {
+        vendorMap.set(vendor.VendorID,vendor.FacebookPageName);
+    });
+    return vendorMap;
+}
 
 async function scrapeRoutine(){
     const vendors = await repository.selectAllVendors();
@@ -30,5 +45,6 @@ async function scrapeRoutine(){
     }))
 }
 
-// main();
-scrapeRoutine();
+main();
+
+// scrapeRoutine();

@@ -4,13 +4,11 @@ const utils = require('./utils');
 const fs = require('fs');
 
 async function main() {
-    const fileName = 'output.txt';
-    const fbPosts = await repository.selectAllVendorPosts('kingfruitsg');
-    fbPosts.map((post) => {
-        fs.appendFileSync(fileName,`Post Date: ${utils.parseDate(post.PostDate)} \n`);
-        fs.appendFileSync(fileName,`Contents: ${post.Contents} \n`);
-        fs.appendFileSync(fileName,`\n`);
-    })
+    const vendors = await repository.selectAllVendors();
+    //get all unprocessed fbposts
+    
+    //for each fb post, parse prices, insert all prices into db as 1 transaction
+    
 };
 
 async function scrapeRoutine(){

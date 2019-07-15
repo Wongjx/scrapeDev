@@ -186,54 +186,54 @@ module.exports.scrapeFbPage=scrapeFbPage;
 module.exports.loginIntoFb=loginIntoFb;
 
 //Test
-if (process.argv[2]) {
-    switch (process.argv[2]) {
-        case '0':
-            const fbUrl = process.argv[3];
-            console.log(`Scrapping url ${fbUrl}`);
-            if (fbUrl) {
-            loginIntoFb().then(()=>{
-                const defaultRequest = getDefaultRequestPromise();
-                defaultRequest(fbUrl).then((res,err) => {
-                    console.log(`Response: ${res}`);
-                    console.log(`Error: ${err}`);
-                })
-                });
-            } else {
-                console.log(`Missing page name arguement`);
-            }
-            break;
-        case '1':
-            console.log('Parsing Page HTML');
-            parsePage(pageHtml);
-            break;
-        case '2':
-            console.log('Parsing Short Post HTML');
-            parsePage(postShortHtml);
-            break;
-        case '3':
-            console.log('Parsing Long Post HTML');
-            console.log(parseLongPost(postLongHtml));
-            break;
-        case '4':
-            console.log('Parsing Login HTML');
-            parseLogin(loginHtml);
-            break;
-        case '5':
-            console.log('Parsing Device Save HTML');
-            parseDeviceSave(deviceSaveHtml);
-            break;
-        case '6':
-            console.log('Parsing Story Post HTML');
-            console.log(parseLongPost(postStoryHtml));
-            break;
-        case '7':
-            console.log('Parsing Photo Post HTML');
-            console.log(parseLongPost(postPhotoHtml));
-            break;
-        default:
-            console.log('Arg does not match');
-    }
-} else {
-    parsePage(postShortHtml);
-}
+// if (process.argv[2]) {
+//     switch (process.argv[2]) {
+//         case '0':
+//             const fbUrl = process.argv[3];
+//             console.log(`Scrapping url ${fbUrl}`);
+//             if (fbUrl) {
+//             loginIntoFb().then(()=>{
+//                 const defaultRequest = getDefaultRequestPromise();
+//                 defaultRequest(fbUrl).then((res,err) => {
+//                     console.log(`Response: ${res}`);
+//                     console.log(`Error: ${err}`);
+//                 })
+//                 });
+//             } else {
+//                 console.log(`Missing page name arguement`);
+//             }
+//             break;
+//         case '1':
+//             console.log('Parsing Page HTML');
+//             parsePage(pageHtml);
+//             break;
+//         case '2':
+//             console.log('Parsing Short Post HTML');
+//             parsePage(postShortHtml);
+//             break;
+//         case '3':
+//             console.log('Parsing Long Post HTML');
+//             console.log(parseLongPost(postLongHtml));
+//             break;
+//         case '4':
+//             console.log('Parsing Login HTML');
+//             parseLogin(loginHtml);
+//             break;
+//         case '5':
+//             console.log('Parsing Device Save HTML');
+//             parseDeviceSave(deviceSaveHtml);
+//             break;
+//         case '6':
+//             console.log('Parsing Story Post HTML');
+//             console.log(parseLongPost(postStoryHtml));
+//             break;
+//         case '7':
+//             console.log('Parsing Photo Post HTML');
+//             console.log(parseLongPost(postPhotoHtml));
+//             break;
+//         default:
+//             console.log('Arg does not match');
+//     }
+// } else {
+//     parsePage(postShortHtml);
+// }

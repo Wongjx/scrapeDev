@@ -65,15 +65,45 @@ async function insertMultiplePosts(fbPosts){
 async function insertMultiplePrices(vendorId,postDate,durianPrices){
     const db = await getConnectionToDatabase().catch(logError);
     const results0 =  await db.beginTransaction().catch(logError);
-    // console.log(`Start DB Transaction: ${results0}`);
-    durianPrices.forEach(async price => {
-        const results1 = await db.query(queries.INSERT_DURIANPRICE_QUERY, [vendorId,postDate,price[0],price[1]]).catch(logError);
-        console.log(results1);
+    //prep multiple insert queries
+    const insertPricePromiseArray = [];
+    durianPrices.forEach(price => {
+        if(/\s/.test(price[0])){ //multiple durian price
+            price[0].split(" ").forEach(element => {
+                insertPricePromiseArray.push(db.query(queries.INSERT_DURIANPRICE_QUERY, [vendorId,postDate,element,price[1]]));        
+            });
+        } else {
+            insertPricePromiseArray.push(db.query(queries.INSERT_DURIANPRICE_QUERY, [vendorId,postDate,price[0],price[1]]));
+        }
     });
-    const result4 = await db.commit().catch(logError);
-    // console.log(result4);
+    try {
+        const insertResponses = await Promise.all(insertPricePromiseArray);
+        const updateResponse = await db.query(queries.UPDATE_FACEBOOKPOST_QUERY, [true, vendorId, postDate]);
+        const commitResponse = await db.commit();
+    } catch (error){
+        console.error(`Error inserting prices for post VendorId: ${vendorId}, PostDate: ${postDate}`);
+        console.error(error);
+        db.rollback(logError);
+        return false;
+    }
     db.end();
-    return result4;
+    return true;
+}
+async function updateMultipleFacebookPostsIsProcessed(facebookPosts){
+    const db = await getConnectionToDatabase().catch(logError);
+    const results0 =  await db.beginTransaction().catch(logError);
+    const insertPricePromiseArray = [];
+    facebookPosts.forEach(post => {
+        insertPricePromiseArray.push(db.query(queries.UPDATE_FACEBOOKPOST_QUERY, [true,post.VendorID,post.PostDate]));
+    });
+    const results1 = await Promise.all(insertPricePromiseArray).catch((err) => {
+        console.error(err);
+        db.rollback(logError);
+        return false;
+    });
+    await db.commit().catch(logError);
+    db.end();
+    return true;
 }
 async function selectSinglePost(facebookPageName, eopchSecInt){
     // TODO: Select row from FacebookPosts by vendor name and time

@@ -108,7 +108,13 @@ function parseDurianPrice(vendorPageName, inputString){
         return [dNum,result?result[1]:null];
     })
 }
+
+function hasPriceRegex(vendorPageName){
+    return goldenIndex.hasOwnProperty(vendorPageName);
+}
 module.exports.parseDurianPrice=parseDurianPrice;
+module.exports.hasPriceRegex=hasPriceRegex;
+
 // console.log(parseDurianPrice("227katongdurian",`Hi Durians Fans, it’s Friday. Wish everyone a happy Friday.
 
 // We kindly 🙇🏻‍♂ seek your understanding that we may not be able to pick up all calls during this peak period as we are trying to open durians as fast as possible so that you all can satisfy your cravings for durians asap too~

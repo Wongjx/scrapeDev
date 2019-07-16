@@ -1,6 +1,6 @@
 // get the client
 const mysql = require('mysql2/promise');
-const config = require('./config/db');
+const config = require('../config/db');
 const queries = require('./queries');
 
 function logError(err) {
@@ -28,18 +28,6 @@ async function insertPost(VendorID,PostDate,Contents){
     const results = await db.query(queries.INSERT_POST_QUERY, [VendorID,PostDate,Contents]).catch(logError);
     db.end();
     return results;
-    // Suceed results, throw error if fail
-    // [
-    //     ResultSetHeader {
-    //       fieldCount: 0,
-    //       affectedRows: 1,
-    //       insertId: 0,
-    //       info: '',
-    //       serverStatus: 2,
-    //       warningStatus: 0
-    //     },
-    //     undefined
-    //   ]
 }
 async function insertMultiplePosts(fbPosts){
     if(fbPosts.length<1){
@@ -133,13 +121,19 @@ async function selectUnprocessedFacebookPosts(){
     db.end();
     return unprocessedFbPosts;
 }
-
-// selectAllVendors().then((res) => {
-//     console.log(res);
-// });
+async function selectLatestDurianPrices(){
+    const db = await getConnectionToDatabase().catch(logError);
+    const [latestDurianPrices, fields1] = await db.query(queries.SELECT_LATEST_PRICES_QUERY).catch(logError);
+    db.end();
+    return latestDurianPrices;
+}
 module.exports.selectAllVendors = selectAllVendors;
 module.exports.selectAllVendorPosts = selectAllVendorPosts;
 module.exports.selectUnprocessedFacebookPosts = selectUnprocessedFacebookPosts;
 module.exports.insertPost = insertPost;
 module.exports.insertMultiplePosts = insertMultiplePosts;
 module.exports.insertMultiplePrices = insertMultiplePrices;
+
+// selectLatestDurianPrices().then((res) => {
+//     console.log(res);
+// });

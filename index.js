@@ -1,8 +1,7 @@
-const repository = require('./repository');
-const scrape = require('./scrape');
-const parser = require('./parser');
-const utils = require('./utils');
-const fs = require('fs');
+const repository = require('./services/repository');
+const scrape = require('./services/scrape');
+const parser = require('./services/parser');
+const utils = require('./services/utils');
 
 async function processFacebookPosts() {
     // //get all unprocessed fbposts
@@ -19,7 +18,7 @@ async function processFacebookPosts() {
                 return await repository.insertMultiplePrices(post.VendorID,post.PostDate,filteredPrices);
             }
         } else {
-            console.log(`Price Regex for ${vendorPageName} is availiable`);
+            console.log(`Price Regex for ${vendorPageName} is not available`);
         }
     });
 };
@@ -51,5 +50,19 @@ async function scrapeRoutine(){
     }))
 }
 
-processFacebookPosts();
-// scrapeRoutine();
+
+if (process.argv[2]) {
+    switch (process.argv[2]) {
+        case 'scrape':
+            scrapeRoutine();
+            break;
+        case 'process':
+            processFacebookPosts()
+            break;
+        default:
+            console.error(`Provided arguement: ${process.argv[2]} does not match possible commands`);
+            break;
+    }
+} else {
+    console.error(`No argument provided`);
+}

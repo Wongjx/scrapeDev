@@ -9,6 +9,7 @@
     "author": "",
     "dependencies": {
         "cheerio": "latest",
+        "googleapis": "^39.2.0",
         "mysql2": "^1.6.5",
         "request": "latest",
         "request-promise-native": "^1.0.7",

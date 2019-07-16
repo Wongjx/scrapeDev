@@ -1,5 +1,5 @@
 const cheerio = require('cheerio');
-const fb = require('./config/fb');
+const fb = require('../config/fb');
 const utils = require('./utils');
 const rp = require('request-promise-native');
 const cookieJar = rp.jar();
@@ -8,13 +8,13 @@ const cookieJar = rp.jar();
 const fbHomeUrl = 'https://mbasic.facebook.com/';
 
 //load html templates use for testing
-const postShortHtml = require('./testRes/postShort');
-const pageHtml = require('./testRes/page');
-const postLongHtml = require('./testRes/postLong');
-const postStoryHtml = require('./testRes/postStory');
-const deviceSaveHtml = require('./testRes/device_save');
-const loginHtml = require('./testRes/login');
-const postPhotoHtml = require('./testRes/postPhoto');
+// const postShortHtml = require('../testRes/postShort');
+// const pageHtml = require('../testRes/page');
+// const postLongHtml = require('../testRes/postLong');
+// const postStoryHtml = require('../testRes/postStory');
+// const deviceSaveHtml = require('../testRes/device_save');
+// const loginHtml = require('../testRes/login');
+// const postPhotoHtml = require('../testRes/postPhoto');
 
 function errorLoggging(err) {
     console.error(`Error!`);

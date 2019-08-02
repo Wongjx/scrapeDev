@@ -1,4 +1,3 @@
-// get the client
 const mysql = require('mysql2/promise');
 const config = require('../config/db');
 const queries = require('./queries');
@@ -6,7 +5,6 @@ const queries = require('./queries');
 function logError(err) {
     console.error(err);
 }
-
 function getConnectionToDatabase(){
     return mysql.createConnection({
         host: config.host,
@@ -23,11 +21,12 @@ function getConnectionToDatabase(){
  * @return {Object} Result of transaction 
  */
 async function insertPost(VendorID,PostDate,Contents){
-    // TODO: insert single post into FacebookPosts
-    const db = await getConnectionToDatabase().catch(logError);
-    const results = await db.query(queries.INSERT_POST_QUERY, [VendorID,PostDate,Contents]).catch(logError);
-    db.end();
-    return results;
+    try{
+        const db = await getConnectionToDatabase();
+        const results = await db.query(queries.INSERT_POST_QUERY, [VendorID,PostDate,Contents]);
+        db.end();
+        return results;
+    } catch(err){logError(err)};
 }
 async function insertMultiplePosts(fbPosts){
     if(fbPosts.length<1){
@@ -46,7 +45,6 @@ async function insertMultiplePosts(fbPosts){
         }
     });
     const result4 = await db.commit().catch(logError);
-    // console.log(result4);
     db.end();
     return result4;
 }
@@ -96,7 +94,6 @@ async function updateMultipleFacebookPostsIsProcessed(facebookPosts){
 async function selectSinglePost(facebookPageName, eopchSecInt){
     // TODO: Select row from FacebookPosts by vendor name and time
 }
-
 async function selectAllVendorPosts(facebookPageName){
     const db = await getConnectionToDatabase().catch(logError);
     // get vendor uuid
@@ -110,10 +107,12 @@ async function selectAllVendorPosts(facebookPageName){
     return vendorFacebookPosts;
 }
 async function selectAllVendors(){
-    const db = await getConnectionToDatabase().catch(logError);
-    const [rows, fields] = await db.query(queries.SELECT_ALL_QUERY, ['Vendors']).catch(logError);
-    db.end();
-    return rows;
+    try{
+        const db = await getConnectionToDatabase();
+        const [rows, fields] = await db.query(queries.SELECT_ALL_QUERY, ['Vendors']);
+        db.end();
+        return rows;
+    } catch(err){logError(err)};
 }
 async function selectUnprocessedFacebookPosts(){
     const db = await getConnectionToDatabase().catch(logError);
@@ -127,13 +126,10 @@ async function selectLatestDurianPrices(){
     db.end();
     return latestDurianPrices;
 }
-module.exports.selectAllVendors = selectAllVendors;
-module.exports.selectAllVendorPosts = selectAllVendorPosts;
-module.exports.selectUnprocessedFacebookPosts = selectUnprocessedFacebookPosts;
-module.exports.insertPost = insertPost;
-module.exports.insertMultiplePosts = insertMultiplePosts;
-module.exports.insertMultiplePrices = insertMultiplePrices;
 
-// selectLatestDurianPrices().then((res) => {
-//     console.log(res);
-// });
+module.exports = {selectAllVendors, selectAllVendorPosts, 
+    selectUnprocessedFacebookPosts, insertPost, insertMultiplePosts, 
+    insertMultiplePrices};
+selectLatestDurianPrices().then((res) => {
+    console.log(res);
+});

@@ -1,0 +1,13 @@
+Host: mbasic.facebook.com
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:67.0) Gecko/20100101 Firefox/67.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate, br
+Referer: https://mbasic.facebook.com/search/top/?q=ah+seng+durian&refid=8&_rdr
+DNT: 1
+Connection: keep-alive
+Cookie: fr=13DFuWrZERXrHEqHi.AWXi0zzWNMHvSsAU-bTARV5va8g.BdARzm.FR.AAA.0.0.BdAgUS.AWWNMVKj; sb=5hwBXR_YeUuULxM3_cfB38BP; datr=5hwBXcDIljF3akCbrAPcyd1s; c_user=562288982; xs=28%3AKlZsUMIWIiZ7EA%3A2%3A1560413458%3A6181%3A9565; presence=EDvF3EtimeF1560413595EuserFA2562288982A2EstateFDt3F_5bDiFA2user_3a1B29354532288A2ErF1EoF1EfF1C_5dG560413595031Elm3FA2user_3a1B29354532288A2Eutc3F1560413594132CEchFDp_5f562288982F4CC; act=1560413594245%2F12
+Upgrade-Insecure-Requests: 1
+TE: Trailers
+
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36

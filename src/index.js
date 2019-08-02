@@ -1,8 +1,42 @@
 const repository = require('./services/repository');
 const scrape = require('./services/scrape');
 const parser = require('./services/parser');
+const sheets = require('./services/sheets');
 const utils = require('./services/utils');
 
+async function uploadToGoogleSheets(){
+    // get values from db
+    const vendors = await repository.selectAllVendors();
+    const durianTypes = await repository.selectAllDurianTypes();
+    const latestDurianPrices = await repository.selectLatestDurianPrices();
+    const priceMap = getVendorAndDurianTypeToPriceMap(latestDurianPrices);
+    // console.log(priceMap);
+    // console.log(priceMap.hasOwnProperty('7865700a-9eec-11e9-939d-b827eb9352dbd9'));
+    
+    // map values 
+    const durianTypesMap = durianTypes.map((durianType) => {return durianType.Name});
+    const vendorRowValues = vendors.map((vendor) => {
+        const row = [vendor.Name];
+        durianTypes.forEach(durianType => {
+            if(priceMap.hasOwnProperty(vendor.VendorID+durianType.DurianTypeID)){
+                row.push(priceMap[vendor.VendorID+durianType.DurianTypeID].PricePerKilo);
+            } else {
+                row.push("0");
+            }
+        });
+        return row;
+    })
+    // upload on sheets
+    sheets.authorize(sheets.addPriceSheet, {durianTypes:durianTypesMap, vendorPrices:vendorRowValues});
+}
+
+function getVendorAndDurianTypeToPriceMap(latestDurianPrices){
+    const priceMap ={};
+    latestDurianPrices.forEach(durianPrice => {
+        priceMap[durianPrice.VendorID+durianPrice.DurianTypeID]=durianPrice;
+    });
+    return priceMap
+}
 async function processFacebookPosts() {
     // //get all unprocessed fbposts
     const vendors = await repository.selectAllVendors();
@@ -57,7 +91,10 @@ if (process.argv[2]) {
             scrapeRoutine();
             break;
         case 'process':
-            processFacebookPosts()
+            processFacebookPosts();
+            break;
+        case 'sheet':
+            uploadToGoogleSheets();
             break;
         default:
             console.error(`Provided arguement: ${process.argv[2]} does not match possible commands`);

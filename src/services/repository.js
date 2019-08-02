@@ -114,6 +114,14 @@ async function selectAllVendors(){
         return rows;
     } catch(err){logError(err)};
 }
+async function selectAllDurianTypes(){
+    try{
+        const db = await getConnectionToDatabase();
+        const [rows, fields] = await db.query(queries.SELECT_ALL_QUERY, ['DurianTypes']);
+        db.end();
+        return rows;
+    } catch(err){logError(err)};
+}
 async function selectUnprocessedFacebookPosts(){
     const db = await getConnectionToDatabase().catch(logError);
     const [unprocessedFbPosts, fields1] = await db.query(queries.SELECT_UNPROCESSED_FBPOSTS_QUERY).catch(logError);
@@ -127,9 +135,10 @@ async function selectLatestDurianPrices(){
     return latestDurianPrices;
 }
 
-module.exports = {selectAllVendors, selectAllVendorPosts, 
+module.exports = {selectAllVendors, selectAllVendorPosts,  
+    selectAllDurianTypes,  selectLatestDurianPrices,
     selectUnprocessedFacebookPosts, insertPost, insertMultiplePosts, 
     insertMultiplePrices};
-selectLatestDurianPrices().then((res) => {
-    console.log(res);
-});
+// selectAllDurianTypes().then((res) => {
+//     console.log(res);
+// });

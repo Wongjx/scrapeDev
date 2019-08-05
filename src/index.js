@@ -16,17 +16,22 @@ async function uploadToGoogleSheets(){
     // map values 
     const durianTypesMap = durianTypes.map((durianType) => {return durianType.Name});
     const vendorRowValues = vendors.map((vendor) => {
-        const row = [vendor.Name];
+        const prices = [];
         durianTypes.forEach(durianType => {
             if(priceMap.hasOwnProperty(vendor.VendorID+durianType.DurianTypeID)){
-                row.push(priceMap[vendor.VendorID+durianType.DurianTypeID].PricePerKilo);
+                const durianPrice = priceMap[vendor.VendorID+durianType.DurianTypeID];
+                prices.push({
+                    pricePerKilo: durianPrice.PricePerKilo.toString(),
+                    postDate: utils.parseDateAndReturnInLocaleString(durianPrice.PostDate)
+                });
             } else {
-                row.push("0");
+                prices.push(null);
             }
         });
-        return row;
+        return {vendorName: vendor.Name, prices: prices};
     })
     // upload on sheets
+    // console.log(vendorRowValues);
     sheets.authorize(sheets.addPriceSheet, {durianTypes:durianTypesMap, vendorPrices:vendorRowValues});
 }
 

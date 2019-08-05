@@ -1,6 +1,7 @@
+const credentials = require('../config/google');
+const utils = require('./utils');
 const fs = require('fs');
 const path = require('path');
-const credentials = require('../config/google');
 const readline = require('readline');
 const { google } = require('googleapis');
 
@@ -73,55 +74,95 @@ async function addPriceSheet(auth, params) {
     const sheets = google.sheets({ version: 'v4', auth });
     const SHEET_TITLE = getSheetTitle();
     // Add additional requests (operations) ...
-    const response = await sheets.spreadsheets.batchUpdate(getAddSheetRequest(SHEET_TITLE))
+    const addSheetResponse = await sheets.spreadsheets.batchUpdate(getAddSheetRequest(credentials.sheets.spreadsheet_id, SHEET_TITLE))
     .catch((err) => {
         console.error(err);
     });
-    if(!response){
+    if(!addSheetResponse){
         console.error(`Error: Add Sheet Request Failed`);
         return;
     }
-    const insertValueRequest = {
-        spreadsheetId: credentials.sheets.sheet_id, 
-        resource: {
-          // How the input data should be interpreted.
-          valueInputOption: 'USER_ENTERED',  
-          data: [
-              getHeaderDataObj(SHEET_TITLE,'B1',durianTypes),
-              getVendorRowDataObj(SHEET_TITLE,'A2',vendorPrices)
-            ]
-        }
-    };
-    const insertValueRes = await sheets.spreadsheets.values.batchUpdate(insertValueRequest)
+    const sheetId = addSheetResponse.data.replies[0].addSheet.properties.sheetId;
+    const updateResponse = await sheets.spreadsheets.batchUpdate(getBatchUpdateCellsRequest(credentials.sheets.spreadsheet_id, sheetId, durianTypes, vendorPrices))
     .catch((err) => {
         console.error(err);
-    })
+    });
+    if(!updateResponse){
+        console.error(`Error: Batch Update Cells Request Failed`);
+        return;
+    }
     console.log("Done!");    
 }
 function getSheetTitle(){
-    return new Date().toLocaleDateString();
+    return utils.parseDateAndReturnInLocaleString((Date.now()/1000));
 }
-function getDataObj(sheetTitle, startCell, majorDimension, values){
+function getAddSheetRequest(spreadsheetId, sheetTitle) {
     return {
-        "range": `${sheetTitle}!${startCell}`,
-        "majorDimension": majorDimension,
-        "values": values
-      }
-}
-function getHeaderDataObj( sheetTitle, startCell, values){
-    return getDataObj( sheetTitle, startCell, 'ROWS',[values]);
-}
-function getVendorRowDataObj( sheetTitle, startCell, values){
-    return getDataObj( sheetTitle, startCell, 'ROWS',values);
-}
-
-function getAddSheetRequest(sheetTitle) {
-    return {
-        spreadsheetId: credentials.sheets.sheet_id,
-        resource: { requests: [{
-             addSheet: { properties: { title: sheetTitle } } 
-            }] 
+        spreadsheetId: spreadsheetId,
+        resource: { requests: [
+                {
+                    addSheet: { properties: { title: sheetTitle } } 
+                }
+            ] 
         }
     };
+}
+function getValue(cellValue, note){
+    if(note){
+        return {
+            userEnteredValue:{
+                stringValue: cellValue
+            },
+            note: note
+        }
+    } else {
+        return {
+            userEnteredValue:{
+                stringValue: cellValue
+            }
+        }
+    }
+}
+function getHeaderRow(durianTypes){
+    return {
+        values: [getValue()].concat(durianTypes.map((durian)=>{
+            return getValue(durian);
+        }))
+    };
+}
+function getVendorRow(vendorValues){
+    const values = [getValue(vendorValues.vendorName)];
+    // console.log(vendorValues);
+    return {
+        values : values.concat(vendorValues.prices.map((price)=>{
+            if(price){
+                return getValue(price.pricePerKilo, 'Last Updated: '+price.postDate);
+            } else {
+                return getValue("0");
+            }
+        }))
+    };
+}
+function getBatchUpdateCellsRequest(spreadsheetId, sheetId, durianTypes, vendorPrices){
+    var rows = [getHeaderRow(durianTypes)];
+    rows = rows.concat(vendorPrices.map((vendorPrice)=>{return getVendorRow(vendorPrice);}));
+    return {
+        spreadsheetId: spreadsheetId,
+        resource: {
+            requests: [
+                {
+                    updateCells : {
+                        fields: "*",
+                        rows: rows,
+                        start: {
+                            sheetId: sheetId,
+                            columnIndex: 0,
+                            rowIndex: 0
+                        }
+                    }
+                }
+            ]
+        }
+    }
 }
 module.exports = {authorize, addPriceSheet};

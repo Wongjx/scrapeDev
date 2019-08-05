@@ -139,6 +139,6 @@ module.exports = {selectAllVendors, selectAllVendorPosts,
     selectAllDurianTypes,  selectLatestDurianPrices,
     selectUnprocessedFacebookPosts, insertPost, insertMultiplePosts, 
     insertMultiplePrices};
-// selectAllDurianTypes().then((res) => {
+// selectLatestDurianPrices().then((res) => {
 //     console.log(res);
 // });
